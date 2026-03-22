@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>องครักษ์พิทักษ์เบรน — BP Titration App</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#0D3B6E;--blue2:#1A6B9A;--green:#0F6E56;--red:#A32D2D;--amber:#854F0B;
+  --blue-bg:#EBF2FA;--green-bg:#E1F5EE;--red-bg:#FCEBEB;--amber-bg:#FAEEDA;
+  --border:#e0e0e0;--text:#1a1a1a;--muted:#666;--surface:#f8f9fa;
+}
+body{font-family:'Sarabun',sans-serif;background:#f0f4f8;color:var(--text);min-height:100vh}
+
+/* ── TOP NAV ── */
+.topbar{background:linear-gradient(135deg,var(--blue),var(--blue2),var(--green));padding:0 20px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px #0004}
+.topbar-logo{font-size:18px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px}
+.topbar-logo span{font-size:22px}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,.75);flex:1}
+.topbar-badge{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
+
+/* ── TABS ── */
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--border);padding:0 20px;gap:4px;position:sticky;top:56px;z-index:99;box-shadow:0 2px 8px #0001}
+.tab{padding:12px 20px;font-size:14px;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.2s;font-family:'Sarabun',sans-serif}
+.tab.active{color:var(--blue);border-color:var(--blue)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── PAGE ── */
+.page{display:none;padding:20px;max-width:1100px;margin:0 auto}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 8px #0001;padding:20px;margin-bottom:16px}
+.card-title{font-size:16px;font-weight:700;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title .icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;font-weight:600;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{
+  border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;
+  font-size:14px;font-family:'Sarabun',sans-serif;color:var(--text);
+  transition:.2s;background:#fff
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px #1A4A7A18}
+.form-group.required label::after{content:" *";color:var(--red)}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:.2s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#0a2d54}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#0a4f3d}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#7a1f1f}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-amber:hover{background:#633806}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}
+.btn-outline:hover{background:var(--blue-bg)}
+.btn-sm{padding:7px 14px;font-size:13px}
+
+/* ── RISK BADGE ── */
+.risk-high{background:var(--red-bg);color:var(--red);border:1px solid #f0b0b0;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.risk-med{background:var(--amber-bg);color:var(--amber);border:1px solid #f0c08a;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.risk-low{background:var(--green-bg);color:var(--green);border:1px solid #90d4b0;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+
+/* ── BP DISPLAY ── */
+.bp-display{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.bp-stat{border-radius:10px;padding:14px;text-align:center;border:1.5px solid var(--border)}
+.bp-stat .val{font-size:32px;font-weight:800;line-height:1}
+.bp-stat .unit{font-size:12px;color:var(--muted);margin-top:3px}
+.bp-stat .lbl{font-size:11px;font-weight:600;margin-bottom:6px;color:var(--muted)}
+.bp-high .val{color:var(--red)}
+.bp-ok .val{color:var(--green)}
+.bp-mid .val{color:var(--amber)}
+
+/* ── RATE GUIDE ── */
+.rate-guide{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.rate-card{border-radius:10px;padding:14px;border:2px solid transparent;cursor:pointer;transition:.2s}
+.rate-card.selected,.rate-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px #0002}
+.rate-card-red{background:var(--red-bg);border-color:#E24B4A}
+.rate-card-amber{background:var(--amber-bg);border-color:#EF9F27}
+.rate-card-green{background:var(--green-bg);border-color:#1D9E75}
+.rate-card h4{font-size:13px;font-weight:700;margin-bottom:6px}
+.rate-card .rate{font-size:22px;font-weight:800;margin-bottom:4px}
+.rate-card p{font-size:11px;line-height:1.6}
+
+/* ── LOG TABLE ── */
+.log-table{width:100%;border-collapse:collapse;font-size:13px}
+.log-table th{background:var(--blue);color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:12px}
+.log-table td{padding:9px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+.log-table tr:hover td{background:#f8f9ff}
+.log-table tr:last-child td{border-bottom:none}
+.goal-yes{background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.goal-no{background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.recorder-j{background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.recorder-b{background:var(--amber-bg);color:var(--amber);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+
+/* ── TIMER ── */
+.timer-box{background:linear-gradient(135deg,var(--blue),var(--blue2));border-radius:12px;padding:20px;text-align:center;color:#fff;margin-bottom:16px}
+.timer-label{font-size:13px;opacity:.8;margin-bottom:6px}
+.timer-display{font-size:56px;font-weight:800;letter-spacing:4px;line-height:1;font-variant-numeric:tabular-nums}
+.timer-sub{font-size:12px;opacity:.7;margin-top:6px}
+
+/* ── ALERT BANNER ── */
+.alert{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;display:flex;align-items:center;gap:10px}
+.alert-red{background:var(--red-bg);border:1.5px solid #E24B4A;color:var(--red)}
+.alert-green{background:var(--green-bg);border:1.5px solid #1D9E75;color:var(--green)}
+.alert-amber{background:var(--amber-bg);border:1.5px solid #EF9F27;color:var(--amber)}
+.alert-icon{font-size:20px;flex-shrink:0}
+
+/* ── CURRENT CASE ── */
+.case-header{background:linear-gradient(135deg,#fff7f7,#fff);border:2px solid var(--red);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.case-badge{background:var(--red);color:#fff;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap}
+.case-info{flex:1}
+.case-name{font-size:18px;font-weight:700;color:var(--text)}
+.case-meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;gap:16px}
+.case-meta span{display:flex;align-items:center;gap:4px}
+
+/* ── ROLES ── */
+.role-assign{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.role-box{border-radius:10px;padding:12px;border:1.5px solid var(--border)}
+.role-box .role-title{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.role-box .role-person{font-size:14px;font-weight:700}
+.role-box select{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;font-family:'Sarabun',sans-serif;margin-top:6px;background:#fff}
+
+/* ── REPORT PAGE ── */
+.report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{border-radius:10px;padding:16px;text-align:center;border:1.5px solid var(--border)}
+.stat-card .n{font-size:36px;font-weight:800;line-height:1}
+.stat-card .l{font-size:12px;color:var(--muted);margin-top:4px}
+.case-list-item{background:#fff;border-radius:10px;padding:14px 16px;border:1.5px solid var(--border);margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;cursor:pointer;transition:.2s}
+.case-list-item:hover{border-color:var(--blue);box-shadow:0 2px 12px #1A4A7A18}
+
+/* ── SHIFT REPORT ── */
+.shift-summary{background:linear-gradient(135deg,var(--blue),var(--green));border-radius:12px;padding:20px;color:#fff;margin-bottom:16px}
+.shift-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.shift-stat{background:rgba(255,255,255,.15);border-radius:8px;padding:12px;text-align:center}
+.shift-stat .n{font-size:28px;font-weight:800}
+.shift-stat .l{font-size:11px;opacity:.8;margin-top:2px}
+
+/* ── SEPARATOR ── */
+hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+/* ── INLINE TIMER PULSE ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 1.5s ease-in-out infinite}
+
+/* ── SCROLL ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#f0f0f0}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+
+.flex-end{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.flex-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ml-auto{margin-left:auto}
+.text-center{text-align:center}
+.mt-8{margin-top:8px}
+.gap-8{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:768px){
+  /* Topbar */
+  .topbar{padding:0 12px;height:48px;gap:8px}
+  .topbar-logo{font-size:14px}
+  .topbar-logo span{font-size:18px}
+  .topbar-sub{display:none}
+  .topbar-badge{font-size:10px;padding:3px 8px}
+
+  /* Tabs — scroll horizontal */
+  .tabs{padding:0 8px;gap:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:10px 12px;font-size:12px;white-space:nowrap;flex-shrink:0}
+
+  /* Pages */
+  .page{padding:12px}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:12px}
+  .card-title{font-size:14px;margin-bottom:12px}
+
+  /* Grids — stack to 1 or 2 col */
+  .form-grid{grid-template-columns:1fr 1fr}
+  .criteria-row,.role-grid,.report-grid{grid-template-columns:1fr 1fr}
+  .bp-display{grid-template-columns:1fr 1fr 1fr}
+  .rate-guide{grid-template-columns:1fr}
+  .role-assign{grid-template-columns:1fr 1fr}
+  .shift-grid{grid-template-columns:1fr 1fr 1fr}
+  .case-list-item{grid-template-columns:auto 1fr;gap:10px}
+  .case-list-item > div:last-child{grid-column:1/-1}
+
+  /* Timer */
+  .timer-box{padding:14px}
+  .timer-display{font-size:40px;letter-spacing:2px}
+
+  /* Case header */
+  .case-header{flex-direction:column;gap:10px;align-items:flex-start}
+  .case-meta{flex-wrap:wrap;gap:8px}
+
+  /* Buttons */
+  .btn{padding:9px 14px;font-size:13px}
+  .btn-sm{padding:6px 10px;font-size:12px}
+  .flex-end{flex-wrap:wrap}
+  .gap-8{flex-wrap:wrap}
+
+  /* Tables — scrollable */
+  .log-table th,.log-table td{padding:7px 8px;font-size:11px}
+  div[style*="overflow-x:auto"]{-webkit-overflow-scrolling:touch}
+
+  /* BP stat */
+  .bp-stat .val{font-size:24px}
+  .bp-stat{padding:10px}
+
+  /* Rate cards */
+  .rate-card{padding:12px}
+  .rate-card .rate{font-size:18px}
+  .rate-card p{font-size:10px}
+
+  /* Shift summary */
+  .shift-summary{padding:14px}
+  .shift-stat .n{font-size:22px}
+
+  /* Stat cards */
+  .stat-card .n{font-size:28px}
+  .stat-card{padding:12px}
+}
+
+@media(max-width:480px){
+  .form-grid{grid-template-columns:1fr}
+  .criteria-row,.role-grid,.report-grid{grid-template-columns:1fr}
+  .role-assign{grid-template-columns:1fr 1fr}
+  .timer-display{font-size:36px}
+  .topbar-logo{font-size:13px}
+  .tab{font-size:11px;padding:9px 10px}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topbar">
+  <div class="topbar-logo"><span>🧠</span> องครักษ์พิทักษ์เบรน</div>
+  <div class="topbar-sub">BP Titration — Golden Period ICH/Aneurysm | S24 รพ.มหาราช</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div id="syncBadge" style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;color:#fff;background:rgba(251,191,36,.25)">🟡 กำลังเชื่อม...</div>
+    <div class="topbar-badge" id="shiftBadge">เวร: —</div>
+    <div id="activeDot" style="display:none;width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80"></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab" onclick="switchTab('newcase')">➕ รับ Priority Case</button>
+  <button class="tab" onclick="switchTab('active')">⚡ ดำเนินการ</button>
+  <button class="tab" onclick="switchTab('history')">📋 ประวัติ</button>
+  <button class="tab" onclick="switchTab('report')">📄 Export Report</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 1: DASHBOARD
+══════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <!-- Shift Setup -->
+  <div class="card">
+    <div class="card-title"><div class="icon" style="background:var(--blue-bg)">⚙</div> ตั้งค่าเวร</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่</label>
+        <input type="date" id="shiftDate">
+      </div>
+      <div class="form-group">
+        <label>เวร</label>
+        <select id="shiftType">
+          <option value="">-- เลือกเวร --</option>
+          <option value="เช้า (08:00-16:00)">เช้า (08:00-16:00)</option>
+          <option value="บ่าย (16:00-24:00)">บ่าย (16:00-24:00)</option>
+          <option value="ดึก (00:00-08:00)">ดึก (00:00-08:00)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>หัวหน้าเวร</label>
+        <input type="text" id="shiftHead" placeholder="ชื่อหัวหน้าเวร">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveShift()">💾 บันทึกเวร</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="report-grid">
+    <div class="stat-card" style="border-color:#E24B4A">
+      <div class="n" style="color:var(--red)" id="stat-active">0</div>
+      <div class="l">Priority Case ปัจจุบัน</div>
+    </div>
+    <div class="stat-card" style="border-color:#1D9E75">
+      <div class="n" style="color:var(--green)" id="stat-goal">0</div>
+      <div class="l">BP Goal สำเร็จ (วันนี้)</div>
+    </div>
+    <div class="stat-card" style="border-color:#EF9F27">
+      <div class="n" style="color:var(--amber)" id="stat-total">0</div>
+      <div class="l">เคสทั้งหมด (วันนี้)</div>
+    </div>
+    <div class="stat-card" style="border-color:var(--blue)">
+      <div class="n" style="color:var(--blue)" id="stat-avgttg">—</div>
+      <div class="l">Time-to-Goal เฉลี่ย (นาที)</div>
+    </div>
+  </div>
+
+  <!-- Recent Cases -->
+  <div class="card">
+    <div class="flex-between">
+      <div class="card-title" style="margin:0"><div class="icon" style="background:var(--red-bg)">⚡</div> Priority Cases วันนี้</div>
+      <button class="btn btn-outline btn-sm" onclick="switchTab('newcase')">+ รับ Case ใหม่</button>
+    </div>
+    <div id="dashCaseList" style="margin-top:12px">
+      <div class="text-center" style="padding:30px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:8px">🏥</div>
+        <div>ยังไม่มี Priority Case ในวันนี้</div>
+        <button class="btn btn-primary mt-8" onclick="switchTab('newcase')">+ รับ Case แรก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 2: NEW CASE
+══════════════════════════════════════════════ -->
+<div class="page" id="page-newcase">
+  <div class="card">
+    <div class="card-title"><div class="icon" style="background:var(--red-bg)">➕</div> รับ Priority Case ใหม่</div>
+
+    <!-- เกณฑ์ -->
+    <div style="background:var(--red-bg);border:1.5px solid #E24B4A;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700;color:var(--red);margin-bottom:8px;font-size:14px">⚡ เกณฑ์คัดเลือก Priority Case</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px;color:var(--red)">
+        <div>✓ ICH หรือ Cerebral Aneurysm</div>
+        <div>✓ Admit ใหม่วันนั้น</div>
+        <div>✓ SBP ≥ 160 mmHg</div>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group required">
+        <label>HN (เลขที่ผู้ป่วย)</label>
+        <input type="text" id="hn" placeholder="เช่น 12345678">
+      </div>
+      <div class="form-group required">
+        <label>ชื่อ-สกุล ผู้ป่วย</label>
+        <input type="text" id="ptname" placeholder="ชื่อ นามสกุล">
+      </div>
+      <div class="form-group">
+        <label>อายุ (ปี)</label>
+        <input type="number" id="age" placeholder="อายุ">
+      </div>
+      <div class="form-group required">
+        <label>การวินิจฉัย</label>
+        <select id="dx">
+          <option value="">-- เลือก --</option>
+          <option value="ICH (Intracerebral Hemorrhage)">ICH (Intracerebral Hemorrhage)</option>
+          <option value="Cerebral Aneurysm — Ruptured">Cerebral Aneurysm — Ruptured</option>
+          <option value="Cerebral Aneurysm — Unruptured">Cerebral Aneurysm — Unruptured</option>
+          <option value="Subarachnoid Hemorrhage">Subarachnoid Hemorrhage</option>
+        </select>
+      </div>
+      <div class="form-group required">
+        <label>SBP เริ่มต้น (mmHg)</label>
+        <input type="number" id="initSBP" placeholder="เช่น 185">
+      </div>
+      <div class="form-group">
+        <label>GCS เริ่มต้น</label>
+        <input type="number" id="initGCS" placeholder="3-15" min="3" max="15">
+      </div>
+      <div class="form-group required">
+        <label>เวลา Admit</label>
+        <input type="time" id="admitTime">
+      </div>
+      <div class="form-group">
+        <label>ระดับความเสี่ยง</label>
+        <select id="riskLevel">
+          <option value="สูง">สูง (Ruptured / GCS &lt;15 / ติดเตียง)</option>
+          <option value="กลาง">กลาง (Post-op / อายุ&gt;65 / มีโรคร่วม)</option>
+          <option value="ต่ำ">ต่ำ (Unruptured / ดูแลตัวเองได้)</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="sep">
+    <div style="font-weight:700;color:var(--blue);margin-bottom:12px;font-size:14px">👥 มอบหมายทีม</div>
+    <div class="role-assign">
+      <div class="role-box" style="border-color:var(--blue);background:var(--blue-bg)">
+        <div class="role-title" style="color:var(--blue)">หัวหน้าเวร</div>
+        <div class="role-person" style="color:var(--blue)" id="headNurseDisplay">—</div>
+      </div>
+      <div class="role-box" style="border-color:var(--green);background:var(--green-bg)">
+        <div class="role-title" style="color:var(--green)">เจ้าของเตียง (จ.)</div>
+        <input type="text" id="nurseOwner" placeholder="ชื่อพยาบาล" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:'Sarabun',sans-serif;width:100%;margin-top:4px">
+      </div>
+      <div class="role-box" style="border-color:var(--amber);background:var(--amber-bg)">
+        <div class="role-title" style="color:var(--amber)">BP Buddy (บ.)</div>
+        <input type="text" id="nurseBuddy" placeholder="ชื่อพยาบาล" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:'Sarabun',sans-serif;width:100%;margin-top:4px">
+      </div>
+      <div class="role-box" style="border-color:var(--red);background:var(--red-bg)">
+        <div class="role-title" style="color:var(--red)">แพทย์เวร</div>
+        <input type="text" id="doctor" placeholder="ชื่อแพทย์" style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:'Sarabun',sans-serif;width:100%;margin-top:4px">
+      </div>
+    </div>
+
+    <div class="flex-end">
+      <button class="btn btn-success" onclick="createCase()">⚡ เปิด Priority Case</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 3: ACTIVE CASE
+══════════════════════════════════════════════ -->
+<div class="page" id="page-active">
+  <div id="noCaseMsg" class="card text-center" style="padding:40px">
+    <div style="font-size:48px;margin-bottom:12px">🏥</div>
+    <div style="font-size:16px;color:var(--muted)">ยังไม่มี Priority Case ที่เปิดอยู่</div>
+    <button class="btn btn-primary mt-8" onclick="switchTab('newcase')">+ รับ Case ใหม่</button>
+  </div>
+
+  <div id="activeCaseArea" style="display:none">
+    <!-- Case Header -->
+    <div class="case-header" id="caseHeaderDisplay"></div>
+
+    <!-- Timer -->
+    <div class="timer-box">
+      <div class="timer-label">⏱ เวลาที่ผ่านมานับจาก Admit</div>
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="timer-sub" id="timerSub">เป้าหมาย: ควบคุม SBP ≤ 160 ให้ได้ภายใน 120 นาที</div>
+    </div>
+
+    <!-- Alert Zone -->
+    <div id="alertZone"></div>
+
+    <!-- BP Input -->
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--red-bg)">🩺</div> บันทึกค่า BP</div>
+      <div class="form-grid">
+        <div class="form-group required">
+          <label>SBP (mmHg)</label>
+          <input type="number" id="inputSBP" placeholder="เช่น 172" oninput="updateRateGuide()">
+        </div>
+        <div class="form-group required">
+          <label>DBP (mmHg)</label>
+          <input type="number" id="inputDBP" placeholder="เช่น 95">
+        </div>
+        <div class="form-group">
+          <label>HR (bpm)</label>
+          <input type="number" id="inputHR" placeholder="เช่น 82">
+        </div>
+        <div class="form-group required">
+          <label>Rate ยา Nicardipine (ml/hr)</label>
+          <input type="number" id="inputRate" step="0.5" placeholder="เช่น 10">
+        </div>
+        <div class="form-group">
+          <label>GCS</label>
+          <input type="number" id="inputGCS" placeholder="3-15" min="3" max="15">
+        </div>
+        <div class="form-group required">
+          <label>ผู้วัด</label>
+          <select id="inputRecorder">
+            <option value="จ.">จ. (เจ้าของเตียง)</option>
+            <option value="บ.">บ. (BP Buddy)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>หมายเหตุ (ถ้ามี)</label>
+        <input type="text" id="inputNote" placeholder="เช่น ปรับยาขึ้น, แจ้งแพทย์แล้ว">
+      </div>
+      <div class="flex-end">
+        <button class="btn btn-primary" onclick="addLog()">📝 บันทึก</button>
+      </div>
+    </div>
+
+    <!-- Rate Guide -->
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:var(--amber-bg)">💊</div> แนะนำ Rate ยา (Nicardipine 0.2 mg/ml)</div>
+      <div class="rate-guide">
+        <div class="rate-card rate-card-red" id="rate-high">
+          <h4 style="color:var(--red)">SBP ≥ 200 mmHg</h4>
+          <div class="rate" style="color:var(--red)">15 ml/hr</div>
+          <p style="color:#7a2020">Start ที่ 15 ml/hr (3 mg/hr)<br>Titrate ↑ 12.5 ml/hr ทุก 5 นาที<br>Max 75 ml/hr</p>
+        </div>
+        <div class="rate-card rate-card-amber" id="rate-mid">
+          <h4 style="color:var(--amber)">SBP 160–199 mmHg</h4>
+          <div class="rate" style="color:var(--amber)">10 ml/hr</div>
+          <p style="color:#633806">Start ที่ 10 ml/hr (2 mg/hr)<br>Titrate ↑ 12.5 ml/hr ทุก 10–15 นาที<br>Max 75 ml/hr</p>
+        </div>
+        <div class="rate-card rate-card-green" id="rate-low">
+          <h4 style="color:var(--green)">SBP &lt; 160 mmHg</h4>
+          <div class="rate" style="color:var(--green)">Hold</div>
+          <p style="color:#085041">Hold ยา / เฝ้าระวัง<br>วัด BP ทุก 15–30 นาที<br>แจ้งแพทย์ยืนยัน</p>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);background:#f8f8f8;border-radius:8px;padding:10px">
+        ⚠️ <strong>ห้ามลด BP เร็วเกินไป</strong> — หาก SBP &lt; 120 / GCS ลด / Pupil เปลี่ยน / HR &lt; 50 → <strong style="color:var(--red)">หยุดยาและรายงานแพทย์ทันที</strong>
+      </div>
+    </div>
+
+    <!-- Log Table -->
+    <div class="card">
+      <div class="flex-between">
+        <div class="card-title" style="margin:0"><div class="icon" style="background:var(--blue-bg)">📋</div> บันทึก BP Titration Flow Sheet</div>
+        <div id="goalStatus" style="font-size:13px;font-weight:700;color:var(--muted)">รอบันทึกค่าแรก...</div>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>เวลา</th>
+              <th>SBP / DBP</th>
+              <th>HR</th>
+              <th>Rate (ml/hr)</th>
+              <th>GCS</th>
+              <th>ผู้วัด</th>
+              <th>เวลาที่ผ่าน</th>
+              <th>หมายเหตุ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="9" class="text-center" style="padding:20px;color:var(--muted)">ยังไม่มีการบันทึก</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Close Case -->
+    <div class="card" style="border:1.5px solid var(--green)">
+      <div class="card-title"><div class="icon" style="background:var(--green-bg)">✅</div> สรุปและปิด Priority Case</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ผล Goal BP (SBP ≤ 160 ภายใน 2 ชม.)</label>
+          <select id="closeGoal">
+            <option value="ได้">ได้ ✓</option>
+            <option value="ไม่ได้">ไม่ได้ ✗</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Time-to-Goal (นาที)</label>
+          <input type="number" id="closeTTG" placeholder="เช่น 45">
+        </div>
+        <div class="form-group">
+          <label>หมายเหตุเพิ่มเติม</label>
+          <input type="text" id="closeNote" placeholder="เช่น add Labetalol เนื่องจาก BP ไม่ลง">
+        </div>
+      </div>
+      <div class="flex-end">
+        <button class="btn btn-success" onclick="closeCase()">✅ ปิด Case และสรุปผล</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 4: HISTORY
+══════════════════════════════════════════════ -->
+<div class="page" id="page-history">
+  <div class="card">
+    <div class="flex-between">
+      <div class="card-title" style="margin:0"><div class="icon" style="background:var(--blue-bg)">📋</div> ประวัติ Priority Cases ทั้งหมด</div>
+      <button class="btn btn-outline btn-sm" onclick="clearHistory()">🗑 ล้างประวัติ</button>
+    </div>
+    <div id="historyList" style="margin-top:12px">
+      <div class="text-center" style="padding:30px;color:var(--muted)">ยังไม่มีประวัติ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 5: EXPORT REPORT
+══════════════════════════════════════════════ -->
+<div class="page" id="page-report">
+  <!-- Shift Summary -->
+  <div class="shift-summary">
+    <div style="font-size:16px;font-weight:800">📊 สรุปผล Priority Case System</div>
+    <div style="font-size:13px;opacity:.8;margin-top:4px" id="reportShiftInfo">—</div>
+    <div class="shift-grid" id="reportShiftGrid">
+      <div class="shift-stat"><div class="n" id="rpt-total">0</div><div class="l">เคสทั้งหมด</div></div>
+      <div class="shift-stat"><div class="n" id="rpt-goal">0</div><div class="l">BP Goal สำเร็จ</div></div>
+      <div class="shift-stat"><div class="n" id="rpt-avgttg">—</div><div class="l">Time-to-Goal เฉลี่ย (นาที)</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between">
+      <div class="card-title" style="margin:0"><div class="icon" style="background:var(--red-bg)">📄</div> รายละเอียดทุก Case</div>
+      <div class="gap-8">
+        <button class="btn btn-success" onclick="exportPDF()">📥 Export PDF Report</button>
+        <button class="btn btn-primary" onclick="exportSinglePDF(null)">📄 PDF Case ล่าสุด</button>
+        <button class="btn btn-amber" onclick="exportExcel()">📊 Export Excel (.xlsx)</button>
+        <button class="btn btn-outline" onclick="exportCSV()">📋 Export CSV</button>
+      </div>
+    </div>
+    <div id="reportCaseList" style="margin-top:12px">
+      <div class="text-center" style="padding:30px;color:var(--muted)">ยังไม่มีข้อมูล</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+// ── FIREBASE CONFIG ────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBxcrrjc7sGE-U4V7lgeIEpwSY5Dib1H-k",
+  authDomain: "organkrak-s24.firebaseapp.com",
+  databaseURL: "https://organkrak-s24-default-rtdb.firebaseio.com",
+  projectId: "organkrak-s24",
+  storageBucket: "organkrak-s24.firebasestorage.app",
+  messagingSenderId: "559258291273",
+  appId: "1:559258291273:web:160b8191e99cf116370398"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── STATE ──────────────────────────────────────
+let state = {
+  shift: { date: '', type: '', head: '' },
+  activeCase: null,
+  cases: [],
+  timerInterval: null,
+};
+let syncStatus = 'connecting'; // connecting | online | offline
+
+// ── FIREBASE SYNC ───────────────────────────────
+function initFirebase() {
+  // Listen for connection status
+  db.ref('.info/connected').on('value', snap => {
+    syncStatus = snap.val() ? 'online' : 'offline';
+    updateSyncBadge();
+  });
+
+  // Listen to shift data
+  db.ref('shift').on('value', snap => {
+    const data = snap.val();
+    if (data) {
+      state.shift = data;
+      document.getElementById('shiftDate').value = data.date || '';
+      document.getElementById('shiftType').value = data.type || '';
+      document.getElementById('shiftHead').value = data.head || '';
+      document.getElementById('shiftBadge').textContent = 'เวร: ' + (data.type || '—');
+      document.getElementById('headNurseDisplay').textContent = data.head || '—';
+    }
+  });
+
+  // Listen to cases (real-time sync)
+  db.ref('cases').on('value', snap => {
+    const data = snap.val();
+    state.cases = data ? Object.values(data) : [];
+    // Restore activeCase from cases
+    const active = state.cases.find(c => c.status === 'active');
+    if (active && (!state.activeCase || state.activeCase.id !== active.id)) {
+      state.activeCase = active;
+      startTimer();
+    } else if (!active && state.activeCase) {
+      state.activeCase = null;
+      if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+    } else if (active && state.activeCase) {
+      state.activeCase = active; // keep in sync
+    }
+    updateAllUI();
+  });
+}
+
+function updateSyncBadge() {
+  const badge = document.getElementById('syncBadge');
+  if (!badge) return;
+  if (syncStatus === 'online') {
+    badge.textContent = '🟢 ซิงก์แล้ว';
+    badge.style.background = 'rgba(74,222,128,.25)';
+  } else if (syncStatus === 'offline') {
+    badge.textContent = '🔴 ออฟไลน์';
+    badge.style.background = 'rgba(248,113,113,.25)';
+  } else {
+    badge.textContent = '🟡 กำลังเชื่อม...';
+    badge.style.background = 'rgba(251,191,36,.25)';
+  }
+}
+
+// ── INIT ────────────────────────────────────────
+window.onload = () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('shiftDate').value = today;
+  const now = new Date();
+  const admitEl = document.getElementById('admitTime');
+  if(admitEl) admitEl.value = now.toTimeString().slice(0,5);
+  initFirebase();
+};
+
+function save() {
+  // Save to Firebase instead of localStorage
+  db.ref('shift').set(state.shift);
+  if (state.activeCase) {
+    db.ref('cases/' + state.activeCase.id).set(state.activeCase);
+  }
+  // Save all cases
+  state.cases.forEach(c => {
+    db.ref('cases/' + c.id).set(c);
+  });
+}
+
+function saveCase(c) {
+  db.ref('cases/' + c.id).set(c);
+}
+
+function deleteCase(caseId) {
+  db.ref('cases/' + caseId).remove();
+}
+
+// ── TABS ────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const tabs = ['dashboard','newcase','active','history','report'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  if (tab === 'report') updateReportPage();
+  if (tab === 'history') updateHistoryPage();
+  if (tab === 'dashboard') updateDashboard();
+  if (tab === 'active') updateActivePage();
+}
+
+// ── SHIFT ────────────────────────────────────────
+function saveShift() {
+  state.shift.date = document.getElementById('shiftDate').value;
+  state.shift.type = document.getElementById('shiftType').value;
+  state.shift.head = document.getElementById('shiftHead').value;
+  db.ref('shift').set(state.shift);
+  document.getElementById('shiftBadge').textContent = `เวร: ${state.shift.type || '—'}`;
+  const dot = document.getElementById('activeDot');
+  if(dot) dot.style.display = state.activeCase ? 'block' : 'none';
+  document.getElementById('headNurseDisplay').textContent = state.shift.head || '—';
+  showToast('✅ บันทึกข้อมูลเวรแล้ว');
+  updateDashboard();
+}
+
+// ── CREATE CASE ──────────────────────────────────
+function createCase() {
+  const hn = document.getElementById('hn').value.trim();
+  const ptname = document.getElementById('ptname').value.trim();
+  const dx = document.getElementById('dx').value;
+  const initSBP = parseInt(document.getElementById('initSBP').value);
+  const admitTime = document.getElementById('admitTime').value;
+  if (!hn || !ptname || !dx || !initSBP || !admitTime) {
+    showToast('⚠️ กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'amber'); return;
+  }
+  const now = new Date();
+  const caseObj = {
+    id: Date.now(),
+    hn, ptname, dx, initSBP,
+    age: document.getElementById('age').value,
+    initGCS: document.getElementById('initGCS').value,
+    admitTime,
+    admitTimestamp: now.toISOString(),
+    riskLevel: document.getElementById('riskLevel').value,
+    nurseOwner: document.getElementById('nurseOwner').value,
+    nurseBuddy: document.getElementById('nurseBuddy').value,
+    doctor: document.getElementById('doctor').value,
+    head: state.shift.head,
+    shift: state.shift.type,
+    shiftDate: state.shift.date,
+    logs: [],
+    status: 'active',
+    goal: null, ttg: null, closeNote: ''
+  };
+  state.activeCase = caseObj;
+  state.cases.push(caseObj);
+  db.ref('cases/' + caseObj.id).set(caseObj);
+  startTimer();
+  updateAllUI();
+  switchTab('active');
+  showToast('⚡ เปิด Priority Case — ซิงก์ทีมแล้ว 🔥');
+}
+
+// ── TIMER ────────────────────────────────────────
+function startTimer() {
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+}
+function updateTimer() {
+  if (!state.activeCase) return;
+  const admit = new Date(state.activeCase.admitTimestamp);
+  const now = new Date();
+  const diff = Math.floor((now - admit) / 1000);
+  const h = Math.floor(diff/3600);
+  const m = Math.floor((diff%3600)/60);
+  const s = diff%60;
+  const str = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const el = document.getElementById('timerDisplay');
+  if (el) {
+    el.textContent = str;
+    const mins = diff/60;
+    el.style.color = mins>120 ? '#E24B4A' : mins>90 ? '#EF9F27' : '#fff';
+  }
+  const subEl = document.getElementById('timerSub');
+  if (subEl) {
+    const remain = Math.max(0, 120 - Math.floor(diff/60));
+    subEl.textContent = remain > 0 ? `เหลืออีก ${remain} นาที ใน Golden Period` : '⚠️ เกิน 120 นาทีแล้ว — ตรวจสอบผล Goal';
+  }
+}
+
+// ── ADD LOG ─────────────────────────────────────
+function addLog() {
+  if (!state.activeCase) return;
+  const sbp = parseInt(document.getElementById('inputSBP').value);
+  const dbp = parseInt(document.getElementById('inputDBP').value);
+  const hr = document.getElementById('inputHR').value;
+  const rate = document.getElementById('inputRate').value;
+  const gcs = document.getElementById('inputGCS').value;
+  const recorder = document.getElementById('inputRecorder').value;
+  const note = document.getElementById('inputNote').value;
+  if (!sbp || !dbp) { showToast('⚠️ กรุณากรอก SBP และ DBP', 'amber'); return; }
+  const now = new Date();
+  const admit = new Date(state.activeCase.admitTimestamp);
+  const elapsedMin = Math.floor((now - admit)/60000);
+  const log = {
+    time: now.toTimeString().slice(0,5),
+    timestamp: now.toISOString(),
+    sbp, dbp, hr, rate, gcs, recorder, note, elapsedMin,
+    goalReached: sbp <= 160
+  };
+  state.activeCase.logs.push(log);
+  // update case in state.cases
+  const idx = state.cases.findIndex(c => c.id === state.activeCase.id);
+  if (idx >= 0) state.cases[idx] = state.activeCase;
+  db.ref('cases/' + state.activeCase.id).set(state.activeCase);
+  updateActivePage();
+  // clear inputs
+  ['inputSBP','inputDBP','inputHR','inputRate','inputGCS','inputNote'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('inputSBP').focus();
+  showToast('✅ บันทึกค่า BP แล้ว');
+}
+
+// ── CLOSE CASE ────────────────────────────────────
+function closeCase() {
+  if (!state.activeCase) return;
+  state.activeCase.goal = document.getElementById('closeGoal').value;
+  state.activeCase.ttg = document.getElementById('closeTTG').value;
+  state.activeCase.closeNote = document.getElementById('closeNote').value;
+  state.activeCase.status = 'closed';
+  const idx = state.cases.findIndex(c => c.id === state.activeCase.id);
+  if (idx >= 0) state.cases[idx] = state.activeCase;
+  db.ref('cases/' + state.activeCase.id).set(state.activeCase);
+  state.activeCase = null;
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+  updateAllUI();
+  switchTab('dashboard');
+  showToast('✅ ปิด Case เรียบร้อย — ซิงก์ทีมแล้ว 🔥');
+}
+
+// ── RATE GUIDE HIGHLIGHT ──────────────────────────
+function updateRateGuide() {
+  const sbp = parseInt(document.getElementById('inputSBP').value);
+  ['rate-high','rate-mid','rate-low'].forEach(id => {
+    document.getElementById(id).style.opacity = '0.5';
+    document.getElementById(id).style.transform = 'none';
+  });
+  if (!sbp) { ['rate-high','rate-mid','rate-low'].forEach(id => { document.getElementById(id).style.opacity='1'; }); return; }
+  let active;
+  if (sbp >= 200) active = 'rate-high';
+  else if (sbp >= 160) active = 'rate-mid';
+  else active = 'rate-low';
+  const el = document.getElementById(active);
+  el.style.opacity = '1';
+  el.style.transform = 'translateY(-3px)';
+  el.style.boxShadow = '0 6px 20px #0003';
+  // alert
+  const zone = document.getElementById('alertZone');
+  if (zone) {
+    if (sbp < 120) {
+      zone.innerHTML = `<div class="alert alert-red"><div class="alert-icon">🚨</div><div><strong>SBP ต่ำมาก (&lt;120) — หยุดยาทันที!</strong><br>รายงานแพทย์และประเมินซ้ำทันที</div></div>`;
+    } else if (sbp >= 200) {
+      zone.innerHTML = `<div class="alert alert-red"><div class="alert-icon">⚠️</div><div><strong>SBP ≥ 200 mmHg</strong> — เริ่มยาที่ 15 ml/hr และ Titrate เร็วทุก 5 นาที</div></div>`;
+    } else if (sbp >= 160) {
+      zone.innerHTML = `<div class="alert alert-amber"><div class="alert-icon">🔔</div><div><strong>SBP 160–199 mmHg</strong> — เริ่มยาที่ 10 ml/hr Titrate ทุก 10–15 นาที</div></div>`;
+    } else {
+      zone.innerHTML = `<div class="alert alert-green"><div class="alert-icon">✅</div><div><strong>SBP ≤ 160 mmHg</strong> — ถึงเป้าหมาย! Hold ยาและเฝ้าระวัง วัด BP ต่อทุก 15–30 นาที</div></div>`;
+    }
+  }
+}
+
+// ── UPDATE ALL UI ─────────────────────────────────
+function updateAllUI() { updateDashboard(); updateActivePage(); }
+
+function updateDashboard() {
+  const today = state.shift.date || new Date().toISOString().split('T')[0];
+  const todayCases = state.cases.filter(c => c.shiftDate === today || !c.shiftDate);
+  const closed = todayCases.filter(c => c.status === 'closed');
+  const goalOK = closed.filter(c => c.goal === 'ได้');
+  const ttgs = closed.filter(c => c.ttg).map(c => parseInt(c.ttg));
+  const avgTTG = ttgs.length ? Math.round(ttgs.reduce((a,b)=>a+b,0)/ttgs.length) : null;
+  document.getElementById('stat-active').textContent = state.activeCase ? 1 : 0;
+  document.getElementById('stat-goal').textContent = goalOK.length;
+  document.getElementById('stat-total').textContent = todayCases.length;
+  document.getElementById('stat-avgttg').textContent = avgTTG ?? '—';
+  document.getElementById('shiftBadge').textContent = `เวร: ${state.shift.type || '—'}`;
+  const dot = document.getElementById('activeDot');
+  if(dot) dot.style.display = state.activeCase ? 'block' : 'none';
+  document.getElementById('headNurseDisplay').textContent = state.shift.head || '—';
+
+  const el = document.getElementById('dashCaseList');
+  if (!todayCases.length) {
+    el.innerHTML = `<div class="text-center" style="padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:8px">🏥</div><div>ยังไม่มี Priority Case ในวันนี้</div><button class="btn btn-primary mt-8" onclick="switchTab('newcase')">+ รับ Case แรก</button></div>`;
+    return;
+  }
+  el.innerHTML = todayCases.slice().reverse().map(c => `
+    <div class="case-list-item" onclick="switchTab('${c.status==='active'?'active':'history'}')">
+      <div>${c.status==='active'?'<span class="risk-high pulse">ACTIVE</span>':'<span class="risk-low">ปิดแล้ว</span>'}</div>
+      <div>
+        <div style="font-weight:700;font-size:15px">${c.ptname} <span style="font-size:12px;color:var(--muted)">HN: ${c.hn}</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${c.dx} | Admit ${c.admitTime} | SBP เริ่ม ${c.initSBP}</div>
+      </div>
+      <div style="text-align:right">
+        ${c.goal ? `<div>${c.goal==='ได้'?'<span class="goal-yes">Goal ✓</span>':'<span class="goal-no">Goal ✗</span>'}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">TTG: ${c.ttg||'—'} นาที</div>` : '<span style="color:var(--muted);font-size:12px">กำลังดำเนินการ</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateActivePage() {
+  const c = state.activeCase;
+  document.getElementById('noCaseMsg').style.display = c ? 'none' : 'block';
+  document.getElementById('activeCaseArea').style.display = c ? 'block' : 'none';
+  if (!c) return;
+
+  // Case header
+  const risk = c.riskLevel==='สูง' ? '<span class="risk-high">ความเสี่ยงสูง</span>' : c.riskLevel==='กลาง' ? '<span class="risk-med">ความเสี่ยงกลาง</span>' : '<span class="risk-low">ความเสี่ยงต่ำ</span>';
+  document.getElementById('caseHeaderDisplay').innerHTML = `
+    <div class="case-badge">⚡ PRIORITY</div>
+    <div class="case-info">
+      <div class="case-name">${c.ptname}</div>
+      <div class="case-meta">
+        <span>🆔 HN: ${c.hn}</span>
+        <span>🏥 ${c.dx}</span>
+        <span>⏰ Admit: ${c.admitTime}</span>
+        <span>🩺 SBP เริ่ม: ${c.initSBP}</span>
+        ${risk}
+      </div>
+      <div class="case-meta" style="margin-top:4px">
+        <span>👩‍⚕️ จ.: ${c.nurseOwner||'—'}</span>
+        <span>🤝 บ.: ${c.nurseBuddy||'—'}</span>
+        <span>👨‍⚕️ พ.: ${c.doctor||'—'}</span>
+      </div>
+    </div>
+  `;
+
+  // Log table
+  const tbody = document.getElementById('logTableBody');
+  if (!c.logs.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:20px;color:var(--muted)">ยังไม่มีการบันทึก</td></tr>';
+  } else {
+    tbody.innerHTML = c.logs.slice().reverse().map((l,i) => `
+      <tr>
+        <td>${l.time}</td>
+        <td><strong>${l.sbp}</strong>/${l.dbp}</td>
+        <td>${l.hr||'—'}</td>
+        <td>${l.rate||'—'}</td>
+        <td>${l.gcs||'—'}</td>
+        <td><span class="${l.recorder==='จ.'?'recorder-j':'recorder-b'}">${l.recorder}</span></td>
+        <td>${l.elapsedMin} น.</td>
+        <td style="font-size:12px;color:var(--muted)">${l.note||'—'}</td>
+        <td><button class="btn btn-sm" style="background:#fee;color:#c00;border:none;cursor:pointer" onclick="deleteLog(${c.logs.length-1-i})">✕</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Goal status
+  const reachedGoal = c.logs.some(l => l.sbp <= 160);
+  const gs = document.getElementById('goalStatus');
+  if (gs) gs.innerHTML = reachedGoal ? '<span class="goal-yes">BP Goal สำเร็จแล้ว ✓</span>' : '<span style="color:var(--muted)">ยังไม่ถึง Goal</span>';
+}
+
+function deleteLog(idx) {
+  if (!state.activeCase) return;
+  state.activeCase.logs.splice(idx, 1);
+  const i = state.cases.findIndex(c => c.id === state.activeCase.id);
+  if (i >= 0) state.cases[i] = state.activeCase;
+  db.ref('cases/' + state.activeCase.id).set(state.activeCase);
+  updateActivePage();
+}
+
+function updateHistoryPage() {
+  const el = document.getElementById('historyList');
+  const closed = state.cases.filter(c => c.status === 'closed');
+  if (!closed.length) { el.innerHTML = '<div class="text-center" style="padding:30px;color:var(--muted)">ยังไม่มีประวัติ</div>'; return; }
+  el.innerHTML = closed.slice().reverse().map(c => `
+    <div class="case-list-item">
+      <div style="font-size:24px">🧠</div>
+      <div>
+        <div style="font-weight:700;font-size:15px">${c.ptname} <span style="font-size:12px;color:var(--muted)">HN: ${c.hn}</span></div>
+        <div style="font-size:12px;color:var(--muted)">${c.dx} | ${c.shiftDate||'—'} | ${c.shift||'—'}</div>
+        <div style="font-size:12px;color:var(--muted)">SBP เริ่ม: ${c.initSBP} | บันทึก ${c.logs.length} ครั้ง | จ.: ${c.nurseOwner||'—'} | บ.: ${c.nurseBuddy||'—'}</div>
+        ${c.closeNote ? `<div style="font-size:12px;color:var(--muted)">หมายเหตุ: ${c.closeNote}</div>` : ''}
+      </div>
+      <div style="text-align:right;min-width:100px">
+        ${c.goal==='ได้'?'<span class="goal-yes">Goal ✓</span>':'<span class="goal-no">Goal ✗</span>'}
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">TTG: ${c.ttg||'—'} นาที</div>
+        <button class="btn btn-outline btn-sm" style="margin-top:6px" onclick="exportSinglePDF(${c.id})">📄 PDF</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateReportPage() {
+  const today = state.shift.date || new Date().toISOString().split('T')[0];
+  const all = state.cases;
+  const closed = all.filter(c => c.status === 'closed');
+  const goalOK = closed.filter(c => c.goal === 'ได้');
+  const ttgs = closed.filter(c => c.ttg).map(c => parseInt(c.ttg));
+  const avgTTG = ttgs.length ? Math.round(ttgs.reduce((a,b)=>a+b,0)/ttgs.length) : null;
+  document.getElementById('reportShiftInfo').textContent = `${state.shift.type||'—'} วันที่ ${state.shift.date||'—'} | หัวหน้าเวร: ${state.shift.head||'—'}`;
+  document.getElementById('rpt-total').textContent = all.length;
+  document.getElementById('rpt-goal').textContent = goalOK.length;
+  document.getElementById('rpt-avgttg').textContent = avgTTG ?? '—';
+  const el = document.getElementById('reportCaseList');
+  if (!all.length) { el.innerHTML = '<div class="text-center" style="padding:30px;color:var(--muted)">ยังไม่มีข้อมูล</div>'; return; }
+  el.innerHTML = `<table class="log-table"><thead><tr>
+    <th>ชื่อ-สกุล</th><th>HN</th><th>Dx</th><th>SBP เริ่ม</th><th>Admit</th><th>บันทึก</th><th>TTG (นาที)</th><th>Goal</th><th>เวร</th>
+  </tr></thead><tbody>${all.slice().reverse().map(c=>`
+    <tr>
+      <td>${c.ptname}</td><td>${c.hn}</td><td style="font-size:12px">${c.dx}</td>
+      <td><strong>${c.initSBP}</strong></td><td>${c.admitTime}</td>
+      <td>${c.logs.length} ครั้ง</td>
+      <td>${c.ttg||'—'}</td>
+      <td>${c.status==='active'?'<span style="color:var(--amber)">กำลังดำเนิน</span>':c.goal==='ได้'?'<span class="goal-yes">ได้ ✓</span>':'<span class="goal-no">ไม่ได้ ✗</span>'}</td>
+      <td style="font-size:12px">${c.shift||'—'}</td>
+    </tr>
+  `).join('')}</tbody></table>`;
+}
+
+// ── EXPORT PDF (Print-based — รองรับภาษาไทย 100%) ──────────────
+function buildPrintHTML(cases, title, subtitle) {
+  const all = cases;
+  const closed = all.filter(c=>c.status==='closed');
+  const goalOK = closed.filter(c=>c.goal==='ได้');
+  const ttgs = closed.filter(c=>c.ttg).map(c=>parseInt(c.ttg));
+  const avgTTG = ttgs.length ? Math.round(ttgs.reduce((a,b)=>a+b,0)/ttgs.length) : '—';
+  const goalRate = closed.length ? Math.round(goalOK.length/closed.length*100)+'%' : '—';
+
+  const summaryRows = all.map(c=>`
+    <tr>
+      <td>${c.ptname}</td><td>${c.hn}</td>
+      <td style="font-size:10px">${c.dx}</td>
+      <td style="text-align:center"><strong>${c.initSBP}</strong></td>
+      <td style="text-align:center">${c.admitTime}</td>
+      <td style="text-align:center">${c.logs.length} ครั้ง</td>
+      <td style="text-align:center">${c.ttg||'—'}</td>
+      <td style="text-align:center">
+        ${c.status==='active'
+          ? '<span style="color:#854F0B;font-weight:700">กำลังดำเนิน</span>'
+          : c.goal==='ได้'
+            ? '<span style="color:#0F6E56;font-weight:700">ได้ ✓</span>'
+            : '<span style="color:#A32D2D;font-weight:700">ไม่ได้ ✗</span>'}
+      </td>
+      <td style="font-size:10px">${c.shift||'—'} ${c.shiftDate||''}</td>
+    </tr>`).join('');
+
+  const detailPages = all.filter(c=>c.logs.length>0).map(c=>`
+    <div style="page-break-before:always">
+      <div style="background:linear-gradient(135deg,#0D3B6E,#0F6E56);color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:800">📋 BP Titration Flow Sheet</div>
+        <div style="font-size:12px;margin-top:4px;opacity:.9">${c.ptname} &nbsp;|&nbsp; HN: ${c.hn} &nbsp;|&nbsp; ${c.dx}</div>
+        <div style="font-size:11px;margin-top:3px;opacity:.85">
+          SBP เริ่ม: <strong>${c.initSBP} mmHg</strong> &nbsp;|&nbsp;
+          Admit: <strong>${c.admitTime}</strong> &nbsp;|&nbsp;
+          Goal: <strong>${c.goal||'กำลังดำเนิน'}</strong> &nbsp;|&nbsp;
+          Time-to-Goal: <strong>${c.ttg||'—'} นาที</strong>
+        </div>
+        <div style="font-size:11px;margin-top:3px;opacity:.85">
+          จ.: ${c.nurseOwner||'—'} &nbsp;|&nbsp; บ.: ${c.nurseBuddy||'—'} &nbsp;|&nbsp; พ.: ${c.doctor||'—'} &nbsp;|&nbsp; หน.: ${c.head||'—'}
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="background:#0F6E56;color:#fff">
+            <th style="padding:7px 8px;text-align:left">เวลา</th>
+            <th style="padding:7px 8px;text-align:center">SBP</th>
+            <th style="padding:7px 8px;text-align:center">DBP</th>
+            <th style="padding:7px 8px;text-align:center">HR</th>
+            <th style="padding:7px 8px;text-align:center">Rate (ml/hr)</th>
+            <th style="padding:7px 8px;text-align:center">GCS</th>
+            <th style="padding:7px 8px;text-align:center">ผู้วัด</th>
+            <th style="padding:7px 8px;text-align:center">เวลาที่ผ่าน (น.)</th>
+            <th style="padding:7px 8px;text-align:left">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${c.logs.map((l,i)=>`
+            <tr style="background:${i%2===0?'#fff':'#f0fff8'};${l.sbp>160?'border-left:3px solid #E24B4A':''}${l.sbp<=160?'border-left:3px solid #1D9E75':''}">
+              <td style="padding:6px 8px;font-weight:700">${l.time}</td>
+              <td style="padding:6px 8px;text-align:center;font-weight:800;font-size:13px;color:${l.sbp>160?'#A32D2D':'#0F6E56'}">${l.sbp}</td>
+              <td style="padding:6px 8px;text-align:center">${l.dbp}</td>
+              <td style="padding:6px 8px;text-align:center">${l.hr||'—'}</td>
+              <td style="padding:6px 8px;text-align:center;font-weight:700">${l.rate||'—'}</td>
+              <td style="padding:6px 8px;text-align:center">${l.gcs||'—'}</td>
+              <td style="padding:6px 8px;text-align:center">
+                <span style="background:${l.recorder==='จ.'?'#EBF2FA':'#FAEEDA'};color:${l.recorder==='จ.'?'#0D3B6E':'#854F0B'};padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px">${l.recorder}</span>
+              </td>
+              <td style="padding:6px 8px;text-align:center">${l.elapsedMin}</td>
+              <td style="padding:6px 8px;font-size:10px;color:#666">${l.note||'—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      ${c.closeNote ? `<div style="margin-top:10px;padding:8px 12px;background:#f8f8f8;border-radius:6px;font-size:11px;color:#555">หมายเหตุ: ${c.closeNote}</div>` : ''}
+    </div>`).join('');
+
+  return `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Sarabun',sans-serif;font-size:12px;color:#1a1a1a;padding:16px}
+    table{border-collapse:collapse;width:100%}
+    th,td{border:1px solid #ddd;padding:6px 8px}
+    th{background:#0D3B6E;color:#fff;font-weight:700}
+    tr:nth-child(even) td{background:#f5f8ff}
+    @media print{body{padding:0}@page{size:A4;margin:12mm}}
+  </style></head><body>
+  <div style="background:linear-gradient(135deg,#0D3B6E,#1A6B9A,#0F6E56);color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:16px">
+    <div style="font-size:20px;font-weight:800">🧠 ${title}</div>
+    <div style="font-size:12px;margin-top:4px;opacity:.9">${subtitle}</div>
+    <div style="font-size:11px;margin-top:3px;opacity:.8">สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div style="background:#EBF2FA;border-radius:8px;padding:12px;text-align:center;border:1px solid #B5D4F4">
+      <div style="font-size:28px;font-weight:800;color:#0D3B6E">${all.length}</div>
+      <div style="font-size:11px;color:#666;margin-top:3px">เคสทั้งหมด</div>
+    </div>
+    <div style="background:#E1F5EE;border-radius:8px;padding:12px;text-align:center;border:1px solid #9FE1CB">
+      <div style="font-size:28px;font-weight:800;color:#0F6E56">${goalOK.length}</div>
+      <div style="font-size:11px;color:#666;margin-top:3px">BP Goal สำเร็จ</div>
+    </div>
+    <div style="background:#FAEEDA;border-radius:8px;padding:12px;text-align:center;border:1px solid #FAC775">
+      <div style="font-size:28px;font-weight:800;color:#854F0B">${goalRate}</div>
+      <div style="font-size:11px;color:#666;margin-top:3px">Goal Rate</div>
+    </div>
+    <div style="background:#FCEBEB;border-radius:8px;padding:12px;text-align:center;border:1px solid #F7C1C1">
+      <div style="font-size:28px;font-weight:800;color:#A32D2D">${avgTTG}</div>
+      <div style="font-size:11px;color:#666;margin-top:3px">TTG เฉลี่ย (นาที)</div>
+    </div>
+  </div>
+  <div style="font-size:13px;font-weight:700;color:#0D3B6E;margin-bottom:8px">สรุปรายการ Priority Cases ทั้งหมด</div>
+  <table style="margin-bottom:20px">
+    <thead><tr>
+      <th>ชื่อ-สกุล</th><th>HN</th><th>การวินิจฉัย</th>
+      <th>SBP เริ่ม</th><th>Admit</th><th>บันทึก</th>
+      <th>TTG (นาที)</th><th>Goal</th><th>เวร/วันที่</th>
+    </tr></thead>
+    <tbody>${summaryRows}</tbody>
+  </table>
+  ${detailPages}
+  <div style="margin-top:20px;text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:10px">
+    องครักษ์พิทักษ์เบรน — SMART BP Bundle | หอผู้ป่วยศัลยกรรมระบบประสาท S24 | โรงพยาบาลมหาราชนครราชสีมา
+  </div>
+  </body></html>`;
+}
+
+function exportPDF() {
+  if (!state.cases.length) { showToast('⚠️ ยังไม่มีข้อมูล Case', 'amber'); return; }
+  const html = buildPrintHTML(
+    state.cases,
+    'Priority Case Report — 2 Hours Save Brain',
+    `เวร: ${state.shift.type||'—'} | วันที่: ${state.shift.date||'—'} | หัวหน้าเวร: ${state.shift.head||'—'} | S24 รพ.มหาราชนครราชสีมา`
+  );
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+  showToast('📥 เปิดหน้า Report — กด Ctrl+P หรือ Print เพื่อบันทึก PDF');
+}
+
+function exportSinglePDF(caseId) {
+  let c;
+  if (caseId === null) {
+    // latest closed case
+    c = [...state.cases].reverse().find(x=>x.status==='closed');
+    if (!c) { showToast('⚠️ ยังไม่มี Case ที่ปิดแล้ว', 'amber'); return; }
+  } else {
+    c = state.cases.find(x=>x.id===caseId);
+  }
+  if (!c) return;
+  const html = buildPrintHTML(
+    [c],
+    `BP Flow Sheet: ${c.ptname}`,
+    `HN: ${c.hn} | ${c.dx} | SBP เริ่ม: ${c.initSBP} mmHg | Admit: ${c.admitTime} | เวร: ${c.shift||'—'} ${c.shiftDate||''}`
+  );
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+  showToast('📄 เปิด Flow Sheet — กด Ctrl+P เพื่อบันทึก PDF');
+}
+
+function exportCSV() {
+  const header = ['ชื่อ-สกุล','HN','Dx','SBP เริ่ม','Admit','บันทึก','TTG','Goal','เวร','วันที่'];
+  const rows = state.cases.map(c => [c.ptname,c.hn,c.dx,c.initSBP,c.admitTime,c.logs.length,c.ttg||'',c.goal||'กำลังดำเนิน',c.shift||'',c.shiftDate||'']);
+  const csv = [header,...rows].map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`OrganKrak_${state.shift.date||'export'}.csv`;
+  a.click();
+  showToast('📋 ดาวน์โหลด CSV แล้ว');
+}
+
+function exportExcel() {
+  if (!state.cases.length) { showToast('⚠️ ยังไม่มีข้อมูล Case', 'amber'); return; }
+  if (typeof XLSX === 'undefined') {
+    showToast('⏳ กำลังโหลด SheetJS...', 'amber');
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => doExportExcel();
+    document.head.appendChild(s);
+  } else { doExportExcel(); }
+}
+
+function doExportExcel() {
+  const wb = XLSX.utils.book_new();
+  const today = state.shift.date || new Date().toISOString().split('T')[0];
+
+  // Sheet 1: สรุปรายการ
+  const h1 = ['ชื่อ-สกุล','HN','การวินิจฉัย','SBP เริ่ม','Admit','บันทึก (ครั้ง)','TTG (นาที)','BP Goal','เวร','วันที่','จ. (เจ้าของเตียง)','บ. (BP Buddy)','แพทย์เวร','หัวหน้าเวร','หมายเหตุ'];
+  const d1 = state.cases.map(c=>[c.ptname,c.hn,c.dx,c.initSBP,c.admitTime,c.logs.length,c.ttg?parseInt(c.ttg):'',c.status==='active'?'กำลังดำเนิน':(c.goal||''),c.shift||'',c.shiftDate||'',c.nurseOwner||'',c.nurseBuddy||'',c.doctor||'',c.head||'',c.closeNote||'']);
+  const ws1 = XLSX.utils.aoa_to_sheet([h1,...d1]);
+  ws1['!cols']=[20,14,30,12,10,14,14,14,16,12,16,16,16,16,20].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, 'สรุป Priority Cases');
+
+  // Sheet 2: BP Log ทุก Case
+  const h2 = ['ชื่อ-สกุล','HN','วันที่','เวลา','SBP','DBP','HR','Rate (ml/hr)','GCS','ผู้วัด','เวลาที่ผ่าน (น.)','หมายเหตุ','BP > 160?'];
+  const d2 = [];
+  state.cases.forEach(c => {
+    c.logs.forEach(l => {
+      d2.push([c.ptname,c.hn,c.shiftDate||'',l.time,l.sbp,l.dbp,l.hr?parseInt(l.hr):'',l.rate?parseFloat(l.rate):'',l.gcs?parseInt(l.gcs):'',l.recorder,l.elapsedMin,l.note||'',l.sbp>160?'ใช่':'ไม่']);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([h2,...d2]);
+  ws2['!cols']=[20,14,12,10,10,10,10,14,8,12,16,20,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws2, 'BP Log ทั้งหมด');
+
+  // Sheet 3: สถิติ
+  const closed = state.cases.filter(c=>c.status==='closed');
+  const goalOK = closed.filter(c=>c.goal==='ได้');
+  const ttgs = closed.filter(c=>c.ttg).map(c=>parseInt(c.ttg));
+  const avg = ttgs.length ? Math.round(ttgs.reduce((a,b)=>a+b,0)/ttgs.length) : '';
+  const d3 = [
+    ['รายการ','ค่า'],
+    ['เวร', state.shift.type||'—'],
+    ['วันที่', state.shift.date||'—'],
+    ['หัวหน้าเวร', state.shift.head||'—'],
+    ['',''],
+    ['จำนวน Case ทั้งหมด', state.cases.length],
+    ['Case ที่ปิดแล้ว', closed.length],
+    ['BP Goal สำเร็จ', goalOK.length],
+    ['BP Goal ไม่สำเร็จ', closed.length - goalOK.length],
+    ['Goal Rate (%)', closed.length ? Math.round(goalOK.length/closed.length*100) : 0],
+    ['',''],
+    ['TTG เฉลี่ย (นาที)', avg],
+    ['TTG ต่ำสุด (นาที)', ttgs.length ? Math.min(...ttgs) : ''],
+    ['TTG สูงสุด (นาที)', ttgs.length ? Math.max(...ttgs) : ''],
+    ['จำนวน BP Log รวม', state.cases.reduce((a,c)=>a+c.logs.length,0)],
+    ['',''],
+    ['สร้างเมื่อ', new Date().toLocaleString('th-TH')],
+  ];
+  const ws3 = XLSX.utils.aoa_to_sheet(d3);
+  ws3['!cols']=[{wch:28},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'สถิติสรุป');
+
+  XLSX.writeFile(wb, `OrganKrak_${today}_${state.shift.type||'Report'}.xlsx`);
+  showToast('✅ ดาวน์โหลด Excel (.xlsx) แล้ว — 3 Sheet พร้อมใช้');
+}
+
+function clearHistory() {
+  if (!confirm('ล้างประวัติทั้งหมดใช่ไหม?')) return;
+  const closedIds = state.cases.filter(c => c.status === 'closed').map(c => c.id);
+  closedIds.forEach(id => db.ref('cases/' + id).remove());
+  state.cases = state.cases.filter(c => c.status === 'active');
+  updateHistoryPage(); updateDashboard();
+  showToast('🗑 ล้างประวัติแล้ว — ซิงก์แล้ว');
+}
+
+// ── TOAST ─────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.createElement('div');
+  const colors = {success:'#0F6E56',amber:'#854F0B',red:'#A32D2D'};
+  t.style.cssText=`position:fixed;bottom:24px;right:24px;background:${colors[type]||colors.success};color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-family:'Sarabun',sans-serif;font-weight:600;z-index:9999;box-shadow:0 4px 20px #0004;animation:fadeIn .3s`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+</script>
+</body>
+</html>
